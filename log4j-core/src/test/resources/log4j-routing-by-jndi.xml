@@ -16,6 +16,23 @@
  limitations under the License.
 
 -->
+
+<!--
+  SECURITY NOTICE - VULNERABILITY-EXERCISE-001 MITIGATION:
+  
+  This test configuration originally demonstrated JNDI-based routing functionality,
+  but JNDI lookups have been INTENTIONALLY DISABLED due to critical security 
+  vulnerability mitigation (CVE-2021-44228 - Log4Shell).
+  
+  Key behavioral changes after JndiLookup removal:
+  - All ${jndi:...} patterns will now return null/empty values
+  - JNDI-based routing will always fall back to default routes
+  - Tests using this configuration should expect null/empty JNDI resolution
+  - No external JNDI connections will be made (preventing RCE attacks)
+  
+  This configuration is preserved for testing that JNDI lookups are properly
+  disabled and do not cause application failures.
+-->
 <Configuration status="OFF" name="RoutingByJndiTest">
 
   <ThresholdFilter level="debug"/>
@@ -31,8 +48,10 @@
       <ThresholdFilter level="debug"/>
     </List>
     <Routing name="Routing">
+      <!-- SECURITY: Post-mitigation, this JNDI pattern will return null/empty instead of resolving -->
       <Routes pattern="$${jndi:logging/context-name}">
         <Route>
+          <!-- SECURITY: JNDI lookup disabled - will always use default value "unknown" -->
           <File name="DefaultApplicationLogFile" fileName="target/routingbyjndi/routingbyjnditest-${jndi:logging/context-name:-unknown}.log" append="false">
             <PatternLayout>
               <Pattern>%d %p %C{1.} [%t] %m%n</Pattern>
@@ -57,3 +76,31 @@
   </Loggers>
 
 </Configuration>
+
+<!--
+  ALTERNATIVE SECURE CONFIGURATION EXAMPLE:
+  
+  To test dynamic routing without JNDI security risks, consider using safer lookup mechanisms:
+  
+  Instead of: pattern="$${jndi:logging/context-name}"
+  Use one of:
+  - pattern="$${sys:app.context.name}"        (System properties)
+  - pattern="$${env:APP_CONTEXT_NAME}"        (Environment variables) 
+  - pattern="$${ctx:contextName}"             (ThreadContext/MDC)
+  - pattern="$${marker:routing-marker}"       (Log4j Markers)
+  
+  Example secure routing configuration:
+  <Routes pattern="$${ctx:contextName}">
+    <Route>
+      <File name="SecureApplicationLogFile" 
+            fileName="target/routing/app-${ctx:contextName:-default}.log" 
+            append="false">
+        <PatternLayout>
+          <Pattern>%d %p %C{1.} [%t] [CTX:%X{contextName}] %m%n</Pattern>
+        </PatternLayout>
+      </File>
+    </Route>
+  </Routes>
+  
+  This approach provides dynamic routing capability without JNDI injection risks.
+-->
