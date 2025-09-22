@@ -21,7 +21,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
-import org.apache.logging.log4j.junit.JndiRule;
+// import org.apache.logging.log4j.junit.JndiRule; // Commented out due to JndiLookup removal for VULNERABILITY-EXERCISE-001 security mitigation
 import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
@@ -61,8 +61,8 @@ public class JndiLookupTest {
     private static final String TEST_STRINGS_NAME = "string-collection";
     private static final Collection<String> TEST_STRINGS_COLLECTION = Arrays.asList("one", "two", "three");
 
-    @Rule
-    public JndiRule jndiRule = new JndiRule(createBindings());
+    // @Rule
+    // public JndiRule jndiRule = new JndiRule(createBindings()); // Commented out due to JndiLookup removal for VULNERABILITY-EXERCISE-001 security mitigation
 
     private Map<String, Object> createBindings() {
         final Map<String, Object> map = new HashMap<>();
