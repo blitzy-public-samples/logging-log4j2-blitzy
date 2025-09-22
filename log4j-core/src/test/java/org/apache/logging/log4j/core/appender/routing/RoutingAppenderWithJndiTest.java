@@ -30,6 +30,7 @@ import org.apache.logging.log4j.test.appender.ListAppender;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
@@ -37,7 +38,23 @@ import static org.junit.Assert.*;
 
 /**
  * RoutingAppenderWithJndiTest
+ * 
+ * VULNERABILITY-EXERCISE-001 MITIGATION: This test has been disabled because 
+ * JNDI lookup functionality has been intentionally removed to address a critical 
+ * remote code execution vulnerability (CVE-2021-44228 - Log4Shell).
+ * 
+ * SECURITY CONTEXT:
+ * - The JndiLookup.java class has been removed/disabled to prevent JNDI injection attacks
+ * - JNDI patterns like ${jndi:ldap://...} will now return null/empty values 
+ * - This test previously validated JNDI-based dynamic routing but can no longer function
+ * - After JNDI lookup removal:
+ *   * JNDI context bindings will not affect routing behavior
+ *   * All routing will fall back to default/unknown routes
+ *   * File creation will always use fallback naming patterns
+ * 
+ * The test remains in the codebase for historical context but is disabled for security.
  */
+@Ignore("VULNERABILITY-EXERCISE-001: JNDI lookup functionality removed to mitigate remote code execution vulnerability")
 public class RoutingAppenderWithJndiTest {
 
     public static final String JNDI_CONTEXT_NAME = "java:comp/env/logging/context-name";

