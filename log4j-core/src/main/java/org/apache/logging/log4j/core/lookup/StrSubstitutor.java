@@ -137,6 +137,17 @@ import org.apache.logging.log4j.util.Strings;
  * {@link #setEnableSubstitutionInVariables(boolean) enableSubstitutionInVariables}
  * property to <b>true</b>.
  * </p>
+ * 
+ * <p>
+ * <strong>Security Testing API:</strong> This class exposes key methods for Log4j security validation:
+ * <ul>
+ * <li>{@link #replace(String)} - Primary string substitution method for testing variable resolution</li>
+ * <li>{@link #setVariableResolver(StrLookup)} - Configure custom lookup resolvers for security tests</li>
+ * </ul>
+ * These methods are available for use by VerifyJndiDisabledTest.java to validate that string 
+ * substitution continues to work correctly after JNDI lookup functionality has been disabled
+ * to mitigate the CVE-2021-44228 vulnerability.
+ * </p>
  */
 public class StrSubstitutor implements ConfigurationAware {
 
@@ -443,6 +454,11 @@ public class StrSubstitutor implements ConfigurationAware {
     /**
      * Replaces all the occurrences of variables with their matching values
      * from the resolver using the given source string as a template.
+     *
+     * <p><strong>Security Testing:</strong> This method is exposed for use by 
+     * VerifyJndiDisabledTest.java to validate that string substitution works
+     * correctly after JNDI lookup functionality has been disabled to mitigate
+     * the CVE-2021-44228 vulnerability.</p>
      *
      * @param source  the string to replace in, null returns null
      * @return the result of the replace operation
@@ -1363,6 +1379,12 @@ public class StrSubstitutor implements ConfigurationAware {
 
     /**
      * Sets the VariableResolver that is used to lookup variables.
+     *
+     * <p><strong>Security Testing:</strong> This method is exposed for use by 
+     * VerifyJndiDisabledTest.java to configure custom lookup resolvers for
+     * security validation tests, ensuring that non-JNDI variable resolution
+     * continues to work correctly after JNDI functionality has been disabled
+     * to mitigate the CVE-2021-44228 vulnerability.</p>
      *
      * @param variableResolver  the VariableResolver
      */
