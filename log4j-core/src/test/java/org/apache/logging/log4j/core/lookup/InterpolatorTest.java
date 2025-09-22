@@ -56,7 +56,10 @@ public class InterpolatorTest {
             System.clearProperty(TESTKEY2);
         }
     }).around(new JndiRule(
-        JndiLookup.CONTAINER_JNDI_RESOURCE_PATH_PREFIX + TEST_CONTEXT_RESOURCE_NAME, TEST_CONTEXT_NAME));
+        "java:comp/env/" + TEST_CONTEXT_RESOURCE_NAME, TEST_CONTEXT_NAME));
+
+    // SECURITY NOTE: JndiLookup.CONTAINER_JNDI_RESOURCE_PATH_PREFIX constant was removed 
+    // as part of CVE-2021-44228 (Log4Shell) mitigation. Using hardcoded value for test.
 
     @Test
     public void testLookup() {

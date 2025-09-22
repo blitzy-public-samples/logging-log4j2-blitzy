@@ -30,6 +30,7 @@ import org.apache.logging.log4j.test.appender.ListAppender;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.ClassRule;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.rules.RuleChain;
 
@@ -37,7 +38,12 @@ import static org.junit.Assert.*;
 
 /**
  * RoutingAppenderWithJndiTest
+ * 
+ * SECURITY FIX: This test has been disabled because JNDI lookup functionality
+ * has been removed to mitigate CVE-2021-44228 (Log4Shell vulnerability).
+ * JNDI-based routing is no longer supported for security reasons.
  */
+@Ignore("JNDI functionality disabled for security - CVE-2021-44228 mitigation")
 public class RoutingAppenderWithJndiTest {
 
     public static final String JNDI_CONTEXT_NAME = "java:comp/env/logging/context-name";

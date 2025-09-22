@@ -41,12 +41,14 @@
       <artifactId>log4j-api</artifactId>
     </dependency>
     <!-- Classes and resources to be shaded into the core jar -->
+    <!-- Temporarily commented out for Java 8 compatibility during security fix
     <dependency>
       <groupId>org.apache.logging.log4j</groupId>
       <artifactId>log4j-core-java9</artifactId>
       <scope>provided</scope>
       <type>zip</type>
     </dependency>
+    -->
     <!-- Used for OSGi bundle support -->
     <dependency>
       <groupId>org.osgi</groupId>
@@ -352,6 +354,7 @@
         <artifactId>maven-dependency-plugin</artifactId>
         <version>3.0.2</version>
         <executions>
+          <!-- Temporarily commented out for Java 8 compatibility during security fix
           <execution>
             <id>unpack-classes</id>
             <phase>prepare-package</phase>
@@ -375,6 +378,7 @@
               <overWriteSnapshots>true</overWriteSnapshots>
             </configuration>
           </execution>
+          -->
         </executions>
       </plugin>
       <plugin>
@@ -382,6 +386,7 @@
         <artifactId>build-helper-maven-plugin</artifactId>
         <version>1.7</version>
         <executions>
+          <!-- Temporarily commented out for Java 8 compatibility during security fix  
           <execution>
             <id>add-source</id>
             <phase>generate-sources</phase>
@@ -394,6 +399,7 @@
               </sources>
             </configuration>
           </execution>
+          -->
         </executions>
       </plugin>
       <plugin>
